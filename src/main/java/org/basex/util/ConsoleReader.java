@@ -98,15 +98,20 @@ public abstract class ConsoleReader {
       final Object history = get(find(historyClz, File.class), hist);
 
       // adjust default settings
-      invoke(method(clz, "setDefaultPrompt", String.class), reader, DEFAULT_PROMPT);
-      invoke(method(clz, "setUseHistory", boolean.class), reader, true);
-      invoke(method(clz, "setBellEnabled", boolean.class), reader, false);
-      invoke(method(clz, "setHistory", historyClz), reader, history);
+      invoke(JLineConsoleReader.class.getName(), "JLineConsoleReader",
+          method(clz, "setDefaultPrompt", String.class), reader, DEFAULT_PROMPT);
+      invoke(JLineConsoleReader.class.getName(), "JLineConsoleReader",
+          method(clz, "setUseHistory", boolean.class), reader, true);
+      invoke(JLineConsoleReader.class.getName(), "JLineConsoleReader",
+          method(clz, "setBellEnabled", boolean.class), reader, false);
+      invoke(JLineConsoleReader.class.getName(), "JLineConsoleReader",
+          method(clz, "setHistory", historyClz), reader, history);
     }
 
     @Override
     public String readLine() {
-      return (String) invoke(readLine, reader);
+      return (String) invoke(JLineConsoleReader.class.getName(), "readLine",
+          readLine, reader);
     }
   }
 }

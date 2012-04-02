@@ -5,6 +5,7 @@ import static org.basex.util.Token.*;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.*;
 
 import org.basex.core.cmd.*;
 import org.basex.query.*;
@@ -31,6 +32,8 @@ public abstract class Main {
   protected boolean verbose;
   /** Trailing newline. */
   protected boolean newline;
+  /** Logger. */
+  private static final Logger LOG = Logger.getLogger(Main.class.getName());
 
   /**
    * Constructor.
@@ -50,6 +53,7 @@ public abstract class Main {
   protected Main(final String[] args, final Context ctx) throws IOException {
     context = ctx != null ? ctx : new Context();
     parseArguments(args);
+    setupLogger();
 
     // console: turn on verbose mode
     verbose |= console;
@@ -61,6 +65,18 @@ public abstract class Main {
         context.close();
       }
     });
+  }
+
+  protected void setupLogger() throws IOException {
+    try {
+      LogManager.getLogManager().readConfiguration(
+          new FileInputStream(new File(Prop.HOME,
+              Prop.debug ? "etc/logging.debug.properties" : "etc/logging.properties")));
+    } catch(IOException ex) {
+      LogManager.getLogManager().readConfiguration();
+      LOG.log(Level.CONFIG,
+          "Unable to read log config file; falling back to default configuration", ex);
+    }
   }
 
   /**

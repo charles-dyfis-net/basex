@@ -125,10 +125,12 @@ final class LuceneStemmer extends Stemmer {
     if(clazz.chars) {
       final char[] ch = s.toCharArray();
       final int cl = s.length();
-      final int nl = (Integer) Reflect.invoke(clazz.stem, stemmer, ch, cl);
+      final int nl = (Integer) Reflect.invoke(LuceneStemmer.class.getName(), "stem",
+          clazz.stem, stemmer, ch, cl);
       s = new String(ch, 0, nl);
     } else {
-      s = (String) Reflect.invoke(clazz.stem, stemmer, s);
+      s = (String) Reflect.invoke(LuceneStemmer.class.getName(), "stem",
+          clazz.stem, stemmer, s);
     }
     return s == null ? word : token(s);
   }

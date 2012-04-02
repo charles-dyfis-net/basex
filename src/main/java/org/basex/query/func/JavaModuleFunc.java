@@ -5,6 +5,7 @@ import static org.basex.query.util.Err.*;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.logging.*;
 
 import org.basex.io.serial.*;
 import org.basex.query.*;
@@ -23,6 +24,8 @@ public final class JavaModuleFunc extends JavaMapping {
   private final Object module;
   /** Method to be called. */
   private final Method mth;
+  /** Log. */
+  private static final Logger LOG = Logger.getLogger(JavaModuleFunc.class.getName());
 
   /**
    * Constructor.
@@ -48,15 +51,20 @@ public final class JavaModuleFunc extends JavaMapping {
       try {
         return mth.invoke(module, (Object[]) args);
       } catch(final IllegalArgumentException iae) {
+        LOG.log(Level.FINEST,
+            "Unable to call Java method {0} with arguments {1}; casting to Java types",
+            new Object[] { mth, args });
         final Object[] ar = new Object[args.length];
         for(int a = 0; a < args.length; a++) ar[a] = args[a].toJava();
         return mth.invoke(module, ar);
       }
     } catch(final InvocationTargetException ex) {
       final Throwable cause = ex.getCause();
+      LOG.log(Level.FINER, "Error calling Java module", cause);
       throw cause instanceof QueryException ? ((QueryException) cause).info(info) :
         JAVAERR.thrw(info, cause);
     } catch(final Throwable ex) {
+      LOG.log(Level.FINER, "Error calling Java module", ex);
       // compose expected signature
       final TokenBuilder expect = new TokenBuilder();
       for(final Class<?> c : mth.getParameterTypes()) {

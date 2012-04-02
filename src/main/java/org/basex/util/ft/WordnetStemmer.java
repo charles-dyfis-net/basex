@@ -55,7 +55,8 @@ final class WordnetStemmer extends Stemmer {
     try {
       final Constructor<?> ctr = Reflect.find(dct, URL.class);
       final Object dict = Reflect.get(ctr, new URL("file", null, PATH));
-      return Reflect.invoke(Reflect.method(dct, "open"), dict);
+      return Reflect.invoke(LuceneStemmer.class.getName(), "stem",
+          Reflect.method(dct, "open"), dict);
     } catch(final Exception ex) {
       return null;
     }
@@ -112,7 +113,8 @@ final class WordnetStemmer extends Stemmer {
   protected byte[] stem(final byte[] word) {
     @SuppressWarnings("unchecked")
     final List<String> l = (List<String>)
-      Reflect.invoke(FIND_STEMS, stemmer, string(word));
+      Reflect.invoke(LuceneStemmer.class.getName(), "stem",
+          FIND_STEMS, stemmer, string(word));
     final byte[] result = l.isEmpty() ? word : token(l.get(0));
     return result.length == 0 ? word : result;
   }

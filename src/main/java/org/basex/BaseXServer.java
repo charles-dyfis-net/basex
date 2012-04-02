@@ -2,7 +2,9 @@ package org.basex;
 
 import static org.basex.core.Text.*;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.File;
 import java.util.logging.*;
 import java.net.*;
 
@@ -41,7 +43,7 @@ public final class BaseXServer extends Main implements Runnable {
   /** Stop file. */
   IOFile stop;
   /** Log. */
-  Logger logger = Logger.getLogger("org.basex.BaseXServer");
+  private static final Logger LOG = Logger.getLogger(BaseXServer.class.getName());
 
   /** EventsListener. */
   private EventListener events;
@@ -59,6 +61,21 @@ public final class BaseXServer extends Main implements Runnable {
   private ServerSocket socket;
   /** Initial commands. */
   private StringList commands;
+
+  protected void setupLogger() throws IOException {
+    if(quiet) {
+      try {
+        LogManager.getLogManager().readConfiguration(
+            new FileInputStream(new File(Prop.HOME, "etc/logging.quiet.properties")));
+      } catch(IOException ex) {
+        super.setupLogger();
+        LOG.log(Level.CONFIG,
+            "Unable to read quiet log file; falling back to default configuration", ex);
+      }
+    } else {
+      super.setupLogger();
+    }
+  }
 
   /**
    * Main method, launching the server process.
@@ -102,14 +119,14 @@ public final class BaseXServer extends Main implements Runnable {
 
     if(service) {
       start(port, args);
-      Util.outln(SRV_STARTED);
+      LOG.info(SRV_STARTED);
       Performance.sleep(1000);
       return;
     }
 
     if(stopped) {
       stop(port, eport);
-      Util.outln(SRV_STOPPED);
+      LOG.info(SRV_STOPPED);
       Performance.sleep(1000);
       return;
     }
@@ -118,7 +135,7 @@ public final class BaseXServer extends Main implements Runnable {
       // execute command-line arguments
       for(final String c : commands) execute(c);
 
-      logger.info(SRV_STARTED);
+      LOG.info(SRV_STARTED);
 
       socket = new ServerSocket();
       socket.setReuseAddress(true);
@@ -132,8 +149,7 @@ public final class BaseXServer extends Main implements Runnable {
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
-          logger.info(SRV_STOPPED);
-          Util.outln(SRV_STOPPED);
+          LOG.info(SRV_STOPPED);
         }
       });
 
@@ -147,7 +163,7 @@ public final class BaseXServer extends Main implements Runnable {
         quit();
       }
     } catch(final IOException ex) {
-      logger.log(Level.WARNING, "Terminating main loop due to exception", ex);
+      LOG.log(Level.WARNING, "Terminating main loop due to exception", ex);
       throw ex;
     }
   }
@@ -159,8 +175,8 @@ public final class BaseXServer extends Main implements Runnable {
       try {
         final Socket s = socket.accept();
         if(stop.exists()) {
-          if(!stop.delete() && logger.isLoggable(Level.WARNING)) {
-            logger.log(Level.WARNING, Util.info(FILE_NOT_DELETED_X, stop));
+          if(!stop.delete() && LOG.isLoggable(Level.WARNING)) {
+            LOG.log(Level.WARNING, Util.info(FILE_NOT_DELETED_X, stop));
           }
           quit();
         } else {
@@ -175,10 +191,10 @@ public final class BaseXServer extends Main implements Runnable {
           new ClientListener(s, context, this).start();
         }
       } catch(final SocketException ex) {
-        logger.log(Level.FINE, "Closing client thread due to SocketException", ex);
+        LOG.log(Level.FINE, "Closing client thread due to SocketException", ex);
         break;
       } catch(final Throwable ex) {
-        logger.log(Level.WARNING,
+        LOG.log(Level.WARNING,
             "Unexpected error resulting in closing client thread", ex);
         break;
       }
@@ -208,7 +224,7 @@ public final class BaseXServer extends Main implements Runnable {
       esocket.close();
       socket.close();
     } catch(final IOException ex) {
-      logger.log(Level.WARNING, "Exception closing sockets during shutdown", ex);
+      LOG.log(Level.WARNING, "Exception closing sockets during shutdown", ex);
     }
     console = false;
   }
@@ -250,7 +266,6 @@ public final class BaseXServer extends Main implements Runnable {
             service = !daemon;
             break;
           case 'z': // suppress logging
-            /* TODO: default logger setup based on presence of -z flag */
             quiet = true;
             break;
           default:

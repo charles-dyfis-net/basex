@@ -5,6 +5,7 @@ import static org.basex.query.util.Err.*;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.logging.*;
 
 import org.basex.io.serial.*;
 import org.basex.query.*;
@@ -24,6 +25,8 @@ public final class JavaFunc extends JavaMapping {
   private final Class<?> cls;
   /** Java method. */
   private final String mth;
+  /** Log. */
+  private static final Logger LOG = Logger.getLogger(JavaModuleFunc.class.getName());
 
   /**
    * Constructor.
@@ -46,9 +49,11 @@ public final class JavaFunc extends JavaMapping {
       return mth.equals(NEW) ? constructor(args) : method(args, ctx);
     } catch(final InvocationTargetException ex) {
       final Throwable cause = ex.getCause();
+      LOG.log(Level.FINER, "Error calling Java module", cause);
       throw cause instanceof QueryException ? ((QueryException) cause).info(info) :
         JAVAERR.thrw(info, cause);
     } catch(final Throwable ex) {
+      LOG.log(Level.FINER, "Error calling Java module", ex);
       throw JAVAFUN.thrw(info, name(), foundArgs(args));
     }
   }

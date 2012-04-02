@@ -5,6 +5,7 @@ import static org.basex.core.Text.*;
 import static org.basex.util.Token.*;
 
 import java.io.*;
+import java.util.logging.*;
 
 import org.basex.core.*;
 import org.basex.data.*;
@@ -24,6 +25,8 @@ import org.basex.util.list.*;
  * @author Christian Gruen
  */
 public abstract class Builder extends Progress {
+  /** Log. */
+  private static final Logger LOG = Logger.getLogger(Builder.class.getName());
   /** Tree structure. */
   final PathSummary path = new PathSummary(null);
   /** Namespace index. */
@@ -79,7 +82,6 @@ public abstract class Builder extends Progress {
       throws IOException {
 
     final Performance perf = Prop.debug ? new Performance() : null;
-    Util.debug(tit() + DOTS);
 
     meta = md;
     tags = ta;
@@ -98,7 +100,7 @@ public abstract class Builder extends Progress {
     // lastid should reflect the fact that the default document was added
     meta.lastid = meta.size - 1;
 
-    Util.memory(perf);
+    LOG.log(Level.FINEST, "Created database: {0}", new Object[] { perf });
   }
 
   /**

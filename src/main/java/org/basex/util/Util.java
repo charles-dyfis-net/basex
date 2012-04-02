@@ -21,15 +21,15 @@ import org.basex.util.list.*;
  */
 public final class Util {
   /** Logger to use for logging errors from Util class itself. */
-  private static Logger logger =
-      Logger.getLogger("org.basex.util.Util");
+  private static final Logger LOG =
+      Logger.getLogger(Util.class.getName());
 
   /** Legacy logger (for code not yet converted to use JSR-14 logging). */
-  private static Logger legacyLogger =
+  private static final Logger LOG_LEGACY =
       Logger.getLogger("org.basex.legacy_logger.general");
 
   /** Performance logger. */
-  private static Logger memoryLogger =
+  private static final Logger LOG_MEMORY =
       Logger.getLogger("org.basex.legacy_logger.memory");
 
   /** Flag for using default standard input. */
@@ -183,7 +183,7 @@ public final class Util {
    * @return always false
    */
   public static boolean debug(final Throwable ex) {
-    legacyLogger.log(Level.FINER, null, ex);
+    LOG_LEGACY.log(Level.FINER, null, ex);
     return false;
   }
 
@@ -193,7 +193,7 @@ public final class Util {
    * @param ext text optional extensions
    */
   public static void debug(final Object str, final Object... ext) {
-    legacyLogger.log(Level.FINER, str.toString(), ext);
+    LOG_LEGACY.log(Level.FINER, str.toString(), ext);
   }
 
   /**
@@ -201,8 +201,8 @@ public final class Util {
    * @param perf performance reference
    */
   public static void memory(final Performance perf) {
-    if(memoryLogger.isLoggable(Level.FINER)) {
-      memoryLogger.log(Level.FINER, " {0} ({1})",
+    if(LOG_MEMORY.isLoggable(Level.FINER)) {
+      LOG_MEMORY.log(Level.FINER, " {0} ({1})",
           new Object[] {perf, Performance.getMemory()});
     }
   }
@@ -282,6 +282,7 @@ public final class Util {
     final StringList sl = new StringList().add(largs).add(args);
 
     try {
+      LOG.log(Level.FINEST, "Executing JVM with arguments: {0}", sl);
       new ProcessBuilder(sl.toArray()).start();
     } catch(final IOException ex) {
       notexpected(ex);

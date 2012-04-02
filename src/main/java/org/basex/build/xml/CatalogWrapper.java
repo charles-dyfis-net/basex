@@ -45,11 +45,16 @@ public final class CatalogWrapper {
    */
   public static void set(final XMLReader reader, final String cat) {
     if(CM == null) return;
-    invoke(method(CMP, "setIgnoreMissingProperties", boolean.class), CM, true);
-    invoke(method(CMP, "setCatalogFiles", String.class), CM, cat);
-    invoke(method(CMP, "setPreferPublic", boolean.class), CM, true);
-    invoke(method(CMP, "setUseStaticCatalog", boolean.class), CM, false);
-    invoke(method(CMP, "setVerbosity", int.class), CM, 0);
+    invoke(CatalogWrapper.class.getName(), "set",
+        method(CMP, "setIgnoreMissingProperties", boolean.class), CM, true);
+    invoke(CatalogWrapper.class.getName(), "set",
+        method(CMP, "setCatalogFiles", String.class), CM, cat);
+    invoke(CatalogWrapper.class.getName(), "set",
+        method(CMP, "setPreferPublic", boolean.class), CM, true);
+    invoke(CatalogWrapper.class.getName(), "set",
+        method(CMP, "setUseStaticCatalog", boolean.class), CM, false);
+    invoke(CatalogWrapper.class.getName(), "set",
+        method(CMP, "setVerbosity", int.class), CM, 0);
     reader.setEntityResolver((EntityResolver) get(CRP, CM));
   }
 }

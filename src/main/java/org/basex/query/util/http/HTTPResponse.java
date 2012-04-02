@@ -8,6 +8,7 @@ import static org.basex.util.Token.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.logging.*;
 
 import org.basex.build.*;
 import org.basex.core.*;

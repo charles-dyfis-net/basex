@@ -167,7 +167,8 @@ public class JapaneseTokenizer extends Tokenizer {
       source = source.replace('\u3000', '\u0020');
     }
     final ArrayList<?> morpheme =
-        (ArrayList<?>) Reflect.invoke(parse, tagger, source);
+        (ArrayList<?>) Reflect.invoke(JapaneseTokenizer.class.getName(), "init",
+            parse, tagger, source);
     final ArrayList<Morpheme> list = new ArrayList<Morpheme>();
     try {
       int prev = 0;

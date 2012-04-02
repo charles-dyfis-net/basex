@@ -92,9 +92,12 @@ final class SnowballStemmer extends Stemmer {
 
   @Override
   protected byte[] stem(final byte[] word) {
-    Reflect.invoke(clazz.setCurrent, stemmer, string(word));
-    Reflect.invoke(clazz.stem, stemmer);
-    final String s = (String) Reflect.invoke(clazz.getCurrent, stemmer);
+    Reflect.invoke(SnowballStemmer.class.getName(), "stem",
+        clazz.setCurrent, stemmer, string(word));
+    Reflect.invoke(SnowballStemmer.class.getName(), "stem",
+        clazz.stem, stemmer);
+    final String s = (String) Reflect.invoke(SnowballStemmer.class.getName(), "stem",
+        clazz.getCurrent, stemmer);
     return s == null ? word : token(s);
   }
 

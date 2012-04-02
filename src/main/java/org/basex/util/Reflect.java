@@ -5,6 +5,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.logging.*;
 
 /**
  * This class assembles some reflection methods. Most exceptions are caught and replaced
@@ -26,6 +27,9 @@ public final class Reflect {
 
   /** Hidden constructor. */
   private Reflect() { }
+
+  /** Log. */
+  private static final Logger LOG = Logger.getLogger(Reflect.class.getName());
 
   /**
    * Checks if the class specified by the pattern is available.
@@ -209,18 +213,21 @@ public final class Reflect {
 
   /**
    * Invokes the specified method.
+   * @param callingClass name of class making invocation; used to identify logger
+   * @param callingMethod name of method making invocation
    * @param method method to run
    * @param object object ({@code null} for static methods)
    * @param args arguments
    * @return result of method call
    */
-  public static Object invoke(final Method method, final Object object,
-      final Object... args) {
+  public static Object invoke(final String callingClass, final String callingMethod,
+    final Method method, final Object object, final Object... args) {
 
     try {
       return method != null ? method.invoke(object, args) : null;
     } catch(final Throwable ex) {
-      Util.debug(ex);
+      Logger.getLogger(callingClass).logp(Level.FINE, callingClass, callingMethod,
+          "Exception thrown during reflection", ex);
       return null;
     }
   }
