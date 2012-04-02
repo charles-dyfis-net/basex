@@ -5,6 +5,7 @@ import static org.basex.util.Token.*;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.logging.*;
 import org.basex.BaseXServer;
 import org.basex.core.*;
 import org.basex.core.cmd.Add;
@@ -43,7 +44,7 @@ public final class ClientListener extends Thread {
   /** Server reference. */
   private final BaseXServer server;
   /** Log reference. */
-  private final Log log;
+  private final Logger logger = Logger.getLogger("org.basex.server.ClientListener");
 
   /** Socket for events. */
   private Socket esocket;
@@ -69,14 +70,12 @@ public final class ClientListener extends Thread {
    * Constructor.
    * @param s socket
    * @param c database context
-   * @param l log reference
    * @param srv server reference
    */
-  public ClientListener(final Socket s, final Context c, final Log l,
+  public ClientListener(final Socket s, final Context c,
       final BaseXServer srv) {
     context = new Context(c, this);
     socket = s;
-    log = l;
     server = srv;
     last = System.currentTimeMillis();
   }
@@ -103,18 +102,19 @@ public final class ClientListener extends Thread {
 
       // write log information
       if(running) {
-        log.write(this, "LOGIN " + context.user.name, OK);
+        logger.log(Level.FINE,
+            "{0} LOGIN {1} OK", new Object[] {this, context.user.name});
         // send {OK}
         send(true);
         server.unblock(address);
         context.add(this);
       } else {
-        if(!us.isEmpty()) log.write(this, ACCESS_DENIED + COLS + us);
+        if(!us.isEmpty())
+          logger.log(Level.FINE, "{0} {1}: {2}", new Object[] {this, ACCESS_DENIED, us});
         new ClientDelayer(server.block(address), this, server).start();
       }
     } catch(final IOException ex) {
-      Util.stack(ex);
-      log.write(ex.getMessage());
+      logger.log(Level.WARNING, "Terminating client session due to exception", ex);
       return;
     }
     if(!running) return;
@@ -169,7 +169,8 @@ public final class ClientListener extends Thread {
         } catch(final QueryException ex) {
           // log invalid command
           final String msg = ex.getMessage();
-          log.write(this, cmd, ERROR_C + msg);
+          logger.log(Level.FINE, "{0} {1} {2}{3}",
+              new Object[] {this, cmd, ERROR_C, msg});
           // send 0 to mark end of potential result
           out.write(0);
           // send {INFO}0
@@ -179,7 +180,11 @@ public final class ClientListener extends Thread {
           continue;
         }
 
-        log.write(this, command.toString().replace('\r', ' ').replace('\n', ' '));
+        if(logger.isLoggable(Level.FINE)) {
+          logger.log(Level.FINE, "{0} {1}",
+              new Object[] { this,
+                  command.toString().replace('\r', ' ').replace('\n', ' ') });
+        }
 
         // execute command and send {RESULT}
         boolean ok = true;
@@ -206,9 +211,11 @@ public final class ClientListener extends Thread {
         }
       }
     } catch(final IOException ex) {
-      log.write(this, sc == ServerCmd.COMMAND ? cmd : sc,
-          ERROR_C + ex.getMessage());
-      Util.debug(ex);
+      if(logger.isLoggable(Level.WARNING)) {
+        logger.log(Level.WARNING,
+            java.text.MessageFormat.format("{0} {1} {2}{3}",
+                new Object[] {this, sc == ServerCmd.COMMAND ? cmd : sc, ERROR_C}), ex);
+      }
       command = null;
       quit();
     }
@@ -220,7 +227,7 @@ public final class ClientListener extends Thread {
    */
   public synchronized void quit() {
     running = false;
-    if(log != null) log.write(this, "LOGOUT " + context.user.name, OK);
+    logger.log(Level.FINE, "{0} LOGOUT {1} OK", new Object[] {this, context.user.name});
 
     // wait until running command was stopped
     if(command != null) {
@@ -238,8 +245,7 @@ public final class ClientListener extends Thread {
         for(final Sessions s : context.events.values()) s.remove(this);
       }
     } catch(final Exception ex) {
-      if(log != null) log.write(ex.getMessage());
-      Util.stack(ex);
+      logger.log(Level.WARNING, "Failure during session cleanup", ex);
     }
   }
 
@@ -317,7 +323,10 @@ public final class ClientListener extends Thread {
    */
   private void info(final String info, final boolean ok) throws IOException {
     // write feedback to log file
-    log.write(this, ok ? OK : ERROR_C + info, perf);
+    if(logger.isLoggable(Level.FINE)) {
+      logger.log(Level.FINE, "{0} {1} {2}",
+          new Object[] { this, ok ? OK : ERROR_C + info, perf });
+    }
     // send {MSG}0 and (0|1) as (success|error) flag
     out.writeString(info);
     send(ok);
@@ -361,7 +370,7 @@ public final class ClientListener extends Thread {
    * @throws IOException I/O exception
    */
   private void execute(final Command cmd) throws IOException {
-    log.write(this, cmd + " [...]");
+    logger.log(Level.FINE, "{0} {1}[...]", new Object[] { this, cmd });
     final DecodingInput di = new DecodingInput(in);
     try {
       cmd.setInput(di);
@@ -444,7 +453,8 @@ public final class ClientListener extends Thread {
         // send {ID}0
         out.writeString(arg);
         // write log file
-        log.write(this, sc + "(" + arg + ')', query, OK, perf);
+        logger.log(Level.FINE, "{0} QUERY({1}) {2} OK {3}",
+            new Object[] {this, arg, query, perf});
       } else {
         // find query process
         qp = queries.get(arg);
@@ -457,12 +467,14 @@ public final class ClientListener extends Thread {
           final String val = in.readString();
           final String typ = in.readString();
           qp.bind(key, val, typ);
-          log.write(this, sc + "(" + arg + ')', key, val, typ, OK, perf);
+          logger.log(Level.FINE, "{0} BIND({1}) {2} {3} {4} OK {5}",
+              new Object[] {this, arg, key, val, typ, perf});
         } else if(sc == ServerCmd.CONTEXT) {
           final String val = in.readString();
           final String typ = in.readString();
           qp.context(val, typ);
-          log.write(this, sc + "(" + arg + ')', val, typ, OK, perf);
+          logger.log(Level.FINE, "{0} CONTEXT({1}) {2} {3} OK {4}",
+              new Object[] {this, arg, val, typ, perf});
         } else if(sc == ServerCmd.ITER) {
           qp.execute(true, out, true, false);
         } else if(sc == ServerCmd.EXEC) {
@@ -487,12 +499,13 @@ public final class ClientListener extends Thread {
       out.write(0);
       // write log file (bind and execute have been logged before)
       if(sc != ServerCmd.BIND && sc != ServerCmd.CONTEXT) {
-        log.write(this, sc + "(" + arg + ')', OK, perf);
+        logger.log(Level.FINE, "{0} {1}({2}) OK {3}", new Object[] {this, sc, arg, perf});
       }
     } catch(final Exception ex) {
       // log exception (static or runtime)
       err = ex.getMessage();
-      log.write(this, sc + "(" + arg + ')', ERROR_C + err);
+      logger.log(Level.INFO, "{0} {1}({2}) {3}{4}",
+          new Object[] {this, sc, arg, ERROR_C, err});
       queries.remove(arg);
     }
     if(err != null) {

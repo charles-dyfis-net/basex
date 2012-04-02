@@ -3,6 +3,7 @@ package org.basex;
 import static org.basex.core.Text.*;
 
 import java.io.IOException;
+import java.util.logging.*;
 import java.net.*;
 
 import org.basex.core.BaseXException;
@@ -15,7 +16,6 @@ import org.basex.io.in.BufferInput;
 import org.basex.server.ClientListener;
 import org.basex.server.ClientSession;
 import org.basex.server.LocalSession;
-import org.basex.server.Log;
 import org.basex.server.LoginException;
 import org.basex.server.Session;
 import org.basex.util.Args;
@@ -41,7 +41,7 @@ public final class BaseXServer extends Main implements Runnable {
   /** Stop file. */
   IOFile stop;
   /** Log. */
-  Log log;
+  Logger logger = Logger.getLogger("org.basex.BaseXServer");
 
   /** EventsListener. */
   private EventListener events;
@@ -118,8 +118,7 @@ public final class BaseXServer extends Main implements Runnable {
       // execute command-line arguments
       for(final String c : commands) execute(c);
 
-      log = new Log(context, quiet);
-      log.write(SRV_STARTED);
+      logger.info(SRV_STARTED);
 
       socket = new ServerSocket();
       socket.setReuseAddress(true);
@@ -133,8 +132,7 @@ public final class BaseXServer extends Main implements Runnable {
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
-          log.write(SRV_STOPPED);
-          log.close();
+          logger.info(SRV_STOPPED);
           Util.outln(SRV_STOPPED);
         }
       });
@@ -149,7 +147,7 @@ public final class BaseXServer extends Main implements Runnable {
         quit();
       }
     } catch(final IOException ex) {
-      if(log != null) log.error(ex);
+      logger.log(Level.WARNING, "Terminating main loop due to exception", ex);
       throw ex;
     }
   }
@@ -161,7 +159,9 @@ public final class BaseXServer extends Main implements Runnable {
       try {
         final Socket s = socket.accept();
         if(stop.exists()) {
-          if(!stop.delete()) log.write(Util.info(FILE_NOT_DELETED_X, stop));
+          if(!stop.delete() && logger.isLoggable(Level.WARNING)) {
+            logger.log(Level.WARNING, Util.info(FILE_NOT_DELETED_X, stop));
+          }
           quit();
         } else {
           // drop inactive connections
@@ -172,13 +172,14 @@ public final class BaseXServer extends Main implements Runnable {
               if(ms - cs.last > ka) cs.quit();
             }
           }
-          new ClientListener(s, context, log, this).start();
+          new ClientListener(s, context, this).start();
         }
       } catch(final SocketException ex) {
+        logger.log(Level.FINE, "Closing client thread due to SocketException", ex);
         break;
       } catch(final Throwable ex) {
-        // socket may have been unexpectedly closed
-        if(log != null) log.error(ex);
+        logger.log(Level.WARNING,
+            "Unexpected error resulting in closing client thread", ex);
         break;
       }
     }
@@ -207,7 +208,7 @@ public final class BaseXServer extends Main implements Runnable {
       esocket.close();
       socket.close();
     } catch(final IOException ex) {
-      if(log != null) log.error(ex);
+      logger.log(Level.WARNING, "Exception closing sockets during shutdown", ex);
     }
     console = false;
   }
@@ -249,6 +250,7 @@ public final class BaseXServer extends Main implements Runnable {
             service = !daemon;
             break;
           case 'z': // suppress logging
+            /* TODO: default logger setup based on presence of -z flag */
             quiet = true;
             break;
           default:

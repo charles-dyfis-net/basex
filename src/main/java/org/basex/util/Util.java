@@ -5,6 +5,7 @@ import static org.basex.core.Text.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.logging.*;
 
 import org.basex.core.*;
 import org.basex.server.*;
@@ -19,6 +20,18 @@ import org.basex.util.list.*;
  * @author Christian Gruen
  */
 public final class Util {
+  /** Logger to use for logging errors from Util class itself. */
+  private static Logger logger =
+      Logger.getLogger("org.basex.util.Util");
+
+  /** Legacy logger (for code not yet converted to use JSR-14 logging). */
+  private static Logger legacyLogger =
+      Logger.getLogger("org.basex.legacy_logger.general");
+
+  /** Performance logger. */
+  private static Logger memoryLogger =
+      Logger.getLogger("org.basex.legacy_logger.memory");
+
   /** Flag for using default standard input. */
   private static final boolean NOCONSOLE = System.console() == null;
 
@@ -170,7 +183,7 @@ public final class Util {
    * @return always false
    */
   public static boolean debug(final Throwable ex) {
-    if(Prop.debug && ex != null) stack(ex);
+    legacyLogger.log(Level.FINER, null, ex);
     return false;
   }
 
@@ -180,7 +193,7 @@ public final class Util {
    * @param ext text optional extensions
    */
   public static void debug(final Object str, final Object... ext) {
-    if(Prop.debug) errln(str, ext);
+    legacyLogger.log(Level.FINER, str.toString(), ext);
   }
 
   /**
@@ -188,8 +201,10 @@ public final class Util {
    * @param perf performance reference
    */
   public static void memory(final Performance perf) {
-    if(!Prop.debug) return;
-    errln(" " + perf + " (" + Performance.getMemory() + ')');
+    if(memoryLogger.isLoggable(Level.FINER)) {
+      memoryLogger.log(Level.FINER, " {0} ({1})",
+          new Object[] {perf, Performance.getMemory()});
+    }
   }
 
   /**
